@@ -58,7 +58,7 @@ declare
   %restxq:path("")
 function index() {
    web:redirect(if(db:exists("synopsx"))
-              then synopsx.models.synopsx:getDefaultProject() || '/' (: rediriger vers le projet par défault :)
+              then "/" || synopsx.models.synopsx:getDefaultProject()  (: rediriger vers le projet par défault :)
               else '/synopsx/install')
 };
 

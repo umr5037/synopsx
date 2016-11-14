@@ -92,14 +92,13 @@ declare function getCorpusMap($item as item()) as map(*) {
  :)
  
  declare function queryTEI($queryParams as map(*)) as map(*) {
-  let $texts := getTEIItems($queryParams)
+  let $texts := synopsx.models.tei:getTEIItems($queryParams)
   let $missingIds := fn:count($texts[fn:not(@xml:id)])
    let $meta := map{
-    'title' : if (fn:count($texts) = 1) then getTitles($texts[1]) else fn:count($texts) || ' TEI texts',
-    'msg' :  if ($missingIds = 0 ) then '' else 'WARNING : ' || $missingIds || ' TEI elements require(s) the @xml:id attribute (generating errors in the SynopsX webapp !)',
-    'description' :   if (fn:count($texts) = 1) then getTitles($texts[1]) else fn:count($texts) || ' TEI texts'
+    'title' : if (fn:count($texts) = 1) then synopsx.models.tei:getTitles($texts[1]) else fn:count($texts) || ' TEI texts',
+    'msg' :  if ($missingIds = 0 ) then '' else 'WARNING : ' || $missingIds || ' TEI elements require(s) the @xml:id attribute (generating errors in the SynopsX webapp !)'
     }
-  let $content := for $text in $texts return getTEIMap($text)
+  let $content := for $text in $texts return synopsx.models.tei:getTEIMap($text)
   return  map{
     'meta'    : $meta,
     'content' : $content
@@ -281,7 +280,9 @@ declare function getResp($item as element()) {
  : @return a string of comma separated titles
  :)
 declare function getTitles($content as element()*){
-  $content/tei:teiHeader/tei:fileDesc/tei:titleStmt/tei:title
+  fn:string-join(
+    for $title in $content/tei:teiHeader/tei:fileDesc/tei:titleStmt/tei:title/text()
+    return fn:string-join($title), ' ')
 };
 
 (:~
@@ -291,7 +292,10 @@ declare function getTitles($content as element()*){
  : @return a string of comma separated titles
  :)
 declare function getBiblTitles($content as element()*){
-    $content//tei:title[ancestor::*:bibl or ancestor::*:biblFull or ancestor::*:biblStruct]  
+  fn:string-join(
+    for $title in $content//tei:title
+    return fn:normalize-space($title),
+    ', ')
 };
 
 (:~
@@ -300,7 +304,10 @@ declare function getBiblTitles($content as element()*){
  : @return a tei abstract
  :)
 declare function getProjectDesc($content as element()*){
-    $content//tei:projectDesc
+   fn:string-join(
+    for $abstract in $content//tei:projectDesc
+    return fn:normalize-space($abstract),
+    ' ')
 };
 
 (:~
@@ -309,8 +316,12 @@ declare function getProjectDesc($content as element()*){
  : @return a distinct-values comma separated list
  :)
 declare function getAuthors($content as element()*){
- $content//tei:titleStmt//tei:author
-  
+  fn:string-join(
+    fn:distinct-values(
+      for $name in $content//tei:titleStmt//tei:author//text()
+        return fn:string-join($name, ' - ')
+      ), 
+    ', ')
 };
 
 (:~
@@ -319,7 +330,12 @@ declare function getAuthors($content as element()*){
  : @return a distinct-values comma separated list
  :)
 declare function getBiblAuthors($content as element()*){
- $content//tei:name
+  fn:string-join(
+    fn:distinct-values(
+      for $name in $content//tei:name//text()
+        return fn:string-join($name, ' - ')
+      ), 
+    ', ')
 };
 
 (:~

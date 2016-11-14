@@ -93,6 +93,22 @@ declare function getProjectDB($project as xs:string) as xs:string {
   else ''
 };
 
+
+(:~
+ : this function built document node with dbName and path
+ :
+ : @param $queryParams the query params
+ : @return one or several document-node according to dbName and path
+ :)
+declare function getDb($queryParams as map(*)) as document-node()* {
+  let $dbName := fn:trace(getProjectDB($queryParams('project')))
+  let $path := $queryParams('path')
+  return
+    if ($path)
+    then db:open($dbName, $path)
+    else db:open($dbName)
+};
+
 (:~
  : this function built the layout path based on the project hierarchy
  :
@@ -210,17 +226,3 @@ declare function  notFound($queryParams) {
 
 
 
-(:~
- : this function built document node with dbName and path
- :
- : @param $queryParams the query params
- : @return one or several document-node according to dbName and path
- :)
-declare function getDb($queryParams as map(*)) as document-node()* {
-  let $dbName := getProjectDB($queryParams('project'))
-  let $path := $queryParams('path')
-  return
-    if ($path)
-    then db:open($dbName, $path)
-    else db:open($dbName)
-};
