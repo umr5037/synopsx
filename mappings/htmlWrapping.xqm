@@ -59,20 +59,19 @@ declare default function namespace 'synopsx.mappings.htmlWrapping' ;
 declare function wrapper($queryParams as map(*), $data as map(*), $outputParams as map(*)) as node()* {
   let $meta := map:get($data, 'meta')
   let $layout := synopsx.models.synopsx:getLayoutPath($queryParams, map:get($outputParams, 'layout'))
-  let $wrap := fn:doc($layout)
-  let $regex := '\{(.*?)\}'
+  let $regex := '\{(.+)\}'
+  let $wrap := fetch:xml($layout)/*
   return
-    $wrap/* update (
-      for $text in .//*[@data-url] 
-            let $incOutputParams := map:put($outputParams, 'layout', $text/@data-url || '.xhtml')
+    $wrap update (
+      for $element in .//*[@data-url] 
+            let $incOutputParams := map:put($outputParams, 'layout', $element/@data-url || '.xhtml')
             let $inc :=  wrapper($queryParams, $data, $incOutputParams)
-            return replace node $text with $inc,
+            return replace node $element with $inc,
       (: keys :)      
-      for $text in .//@*
-        where fn:matches($text, $regex)
-        return replace value of node $text with replace($text, $meta, fn:false()),
-      for $text in .//text()
-        where fn:matches($text, $regex)
+      for $attr in .//@*
+        where fn:matches($attr, $regex)
+        return replace value of node $attr with replace($attr, $meta, fn:false()),
+      for $text in .//text()[fn:matches(., $regex)]
         let $key := fn:replace($text, '\{|\}', '')       
         return if ($key = 'content') 
           then replace node $text with pattern($queryParams, $data, $outputParams)
@@ -101,18 +100,21 @@ declare function pattern($queryParams as map(*), $data as map(*), $outputParams 
     then map:get($queryParams, 'sorting') 
     else ''
   let $order := map:get($queryParams, 'order')
+  let $sorting := map:get($queryParams, 'sorting')  
   let $contents := map:get($data, 'content')
   let $pattern := synopsx.models.synopsx:getLayoutPath($queryParams, map:get($outputParams, 'pattern'))
   for $content in $contents
-  order by (: @see http://jaketrent.com/post/xquery-dynamic-order/ :)
-    if ($order = 'descending') then map:get($content, $sorting) else () ascending,
-    if ($order = 'descending') then () else map:get($content, $sorting) descending
-  let $regex := '\{(.*?)\}'
+  (: order by :) (: @see http://jaketrent.com/post/xquery-dynamic-order/ :)
+  (: @todo : debug this !! :)
+ (:   if ($order = 'descending') then $sorting else () ascending,
+    if ($order = 'descending') then () else $sorting descending :)
+  let $regex := '\{(.+)\}'
+  let $wrap := fetch:xml($pattern)/*
   return
-    fn:doc($pattern)/* update (
-       for $text in .//@*
-        where fn:matches($text, $regex)
-        return replace value of node $text with replace($text, $content, fn:false()),
+    $wrap update (
+       for $attr in .//@*
+        where fn:matches($attr, $regex)
+        return replace value of node $attr with replace($attr, $content, fn:false()),
       for $text in .//text()
         where fn:matches($text, $regex)
         let $key := fn:replace($text, '\{|\}', '')
@@ -189,7 +191,7 @@ declare function render($queryParams as map(*), $outputParams as map(*), $value 
 declare function wrapperNew($queryParams as map(*), $data as map(*), $outputParams as map(*)) as node()* {
   let $meta := map:get($data, 'meta')
   let $layout := map:get($outputParams, 'layout')
-  let $wrap := fn:doc(synopsx.models.synopsx:getLayoutPath($queryParams, $layout))
+  let $wrap := fetch:xml(synopsx.models.synopsx:getLayoutPath($queryParams, $layout))
   let $regex := '\{(.+?)\}'
   return
     $wrap/* update (
@@ -213,7 +215,7 @@ declare function wrapperNew($queryParams as map(*), $data as map(*), $outputPara
 declare function patternNew($queryParams as map(*), $data as map(*), $outputParams as map(*)) as node()* {
   let $contents := map:get($data, 'content')
   let $pattern := map:get($outputParams, 'pattern')
-  let $pattern := fn:doc(synopsx.models.synopsx:getLayoutPath($queryParams, $pattern))
+  let $pattern := fetch:xml(synopsx.models.synopsx:getLayoutPath($queryParams, $pattern))
   let $regex := '\{(.+?)\}'
   for $content in $contents
   return

@@ -56,10 +56,13 @@ declare function getProjectsList($queryParams as map(*)) as map(*) {
   };
 
 declare function getSynopsxStatus($project) as map(*) {
-  let $isDefault := if (fn:exists($project/@default) and $project/@default=fn:true())
-                    then "checked"
+  let $isDefault := if ($project/@default=fn:true())
+                    then "selected"
                     else ""
-  return map {'project':fn:string($project/resourceName/text()), 'isDefault':$isDefault}
+  return map {
+    'project':fn:string($project/resourceName/text()), 
+    'isDefault':$isDefault
+  }
 };
 
 (:~
@@ -91,22 +94,6 @@ declare function getProjectDB($project as xs:string) as xs:string {
   if (db:open('synopsx', 'config.xml')//config/projects/project[resourceName/text() = $project]/dbName)
    then db:open('synopsx', 'config.xml')//config/projects/project[resourceName/text() = $project]/dbName/text()
   else ''
-};
-
-
-(:~
- : this function built document node with dbName and path
- :
- : @param $queryParams the query params
- : @return one or several document-node according to dbName and path
- :)
-declare function getDb($queryParams as map(*)) as document-node()* {
-  let $dbName := fn:trace(getProjectDB($queryParams('project')))
-  let $path := $queryParams('path')
-  return
-    if ($path)
-    then db:open($dbName, $path)
-    else db:open($dbName)
 };
 
 (:~
@@ -226,3 +213,17 @@ declare function  notFound($queryParams) {
 
 
 
+(:~
+ : this function built document node with dbName and path
+ :
+ : @param $queryParams the query params
+ : @return one or several document-node according to dbName and path
+ :)
+declare function getDb($queryParams as map(*)) as document-node()* {
+  let $dbName := getProjectDB($queryParams('project'))
+  let $path := $queryParams('path')
+  return
+    if ($path)
+    then db:open($dbName, $path)
+    else db:open($dbName)
+};
